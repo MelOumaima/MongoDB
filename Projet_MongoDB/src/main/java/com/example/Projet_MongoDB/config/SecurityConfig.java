@@ -11,12 +11,12 @@ import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.http.HttpMethod;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-    // Définir un utilisateur en mémoire
     @Bean
     public UserDetailsService userDetailsService() {
         InMemoryUserDetailsManager manager = new InMemoryUserDetailsManager();
@@ -29,22 +29,23 @@ public class SecurityConfig {
         return manager;
     }
 
-    // PasswordEncoder (NoOp pour test uniquement)
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return NoOpPasswordEncoder.getInstance();
+        return NoOpPasswordEncoder.getInstance(); // à remplacer en prod
     }
 
-    // Configuration de la sécurité avec la nouvelle API
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // Désactiver CSRF pour une API REST
+                .csrf(csrf -> csrf.disable())
+                .cors(Customizer.withDefaults()) // ⚠️ Active le support CORS ici
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/encadrants").permitAll() // accès public
-                        .anyRequest().authenticated() // tout le reste nécessite auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // ⚠️ OPTIONS pour CORS
+                        .requestMatchers("/api/encadrants").permitAll()
+                        .requestMatchers("/api/auth/**").permitAll() // ⚠️ Autorise aussi login
+                        .anyRequest().authenticated()
                 )
-                .httpBasic(Customizer.withDefaults()); // Utiliser Basic Auth
+                .httpBasic(Customizer.withDefaults());
 
         return http.build();
     }
